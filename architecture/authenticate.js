@@ -16,7 +16,32 @@ const sensors = {
     'UUID-789': true
 };
 
-// Authentication for Users (using username and password)
+// Authentication middleware for private endpoints
+const authenticate = (req, res, next) => {
+    const { username, password, uuid } = req.query;
+
+    // User authentication check
+    if (username && password) {
+        if (users[username] && users[username] === password) {
+            return next();  // User is authenticated, proceed to private endpoint
+        } else {
+            return res.status(401).json({ message: 'Invalid username or password' });
+        }
+    }
+    
+    // Sensor authentication check
+    if (uuid) {
+        if (sensors[uuid]) {
+            return next();  // Sensor is authenticated, proceed to private endpoint
+        } else {
+            return res.status(401).json({ message: 'Invalid UUID for sensor' });
+        }
+    }
+
+    return res.status(400).json({ message: 'Missing authentication parameters' });
+};
+
+// Public authentication for Users
 app.get('/auth/user', (req, res) => {
     const { username, password } = req.query;
     
@@ -27,7 +52,7 @@ app.get('/auth/user', (req, res) => {
     }
 });
 
-// Authentication for Sensors (using UUID)
+// Public authentication for Sensors
 app.get('/auth/sensor', (req, res) => {
     const { uuid } = req.query;
 
@@ -36,6 +61,11 @@ app.get('/auth/sensor', (req, res) => {
     } else {
         res.status(401).json({ message: 'Invalid UUID for sensor' });
     }
+});
+
+// Private endpoint example - only accessible after authentication
+app.get('/private/data', authenticate, (req, res) => {
+    res.json({ message: 'This is private data, only accessible after successful authentication' });
 });
 
 // Start the server
